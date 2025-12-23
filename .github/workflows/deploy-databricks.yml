@@ -1,0 +1,47 @@
+name: Deploy Databricks Asset Bundle
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    # This job will only run after PR approval and merge attempt
+    if: github.event.pull_request.merged == true
+    runs-on: self-hosted
+
+    # Require approval from senior engineer via environment protection
+    environment:
+      name: production
+      url: https://<your-databricks-workspace-url>
+      # In GitHub repo settings, configure "production" environment
+      # and add required reviewers (senior engineers)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Databricks CLI
+        run: |
+          pip install databricks-cli
+
+      - name: Configure Databricks CLI
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          databricks configure --token <<EOF
+          $DATABRICKS_HOST
+          $DATABRICKS_TOKEN
+          EOF
+
+      - name: Deploy Asset Bundle
+        run: |
+          # Assuming you have a bundle.yaml defined in your repo
+          databricks bundle deploy -t production
